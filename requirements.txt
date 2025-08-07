@@ -1,2 +1,2 @@
 telepot
-iqoptionapi
+iqoptionapi==1.0.5
