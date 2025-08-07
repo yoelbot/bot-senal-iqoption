@@ -1,1 +1,3 @@
 iqoptionapi
+requests
+websocket-client
