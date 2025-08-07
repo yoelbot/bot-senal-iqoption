@@ -1,4 +1,4 @@
-from iqoptionapi.stable_api import IQ_Option
+from iqoptionapi.api import IQOption
 import requests
 
 # === CONFIGURACIÓN ===
