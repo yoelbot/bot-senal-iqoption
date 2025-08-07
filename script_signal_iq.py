@@ -1,6 +1,6 @@
+import time
 from iqoptionapi.stable_api import IQ_Option
 import requests
-import time
 
 # === CONFIGURACIÓN ===
 EMAIL = "yoelaguilar27.Ya@outlook.com"
@@ -30,7 +30,6 @@ def detectar_senal():
     timeframe = 1  # 1 minuto
     velas = iq.get_candles(activo, 60, 5, time.time())
 
-    # Contar velas alcistas y bajistas
     verdes = sum(1 for vela in velas if vela["close"] > vela["open"])
     rojas = sum(1 for vela in velas if vela["close"] < vela["open"])
 
@@ -49,5 +48,4 @@ while True:
         enviar_telegram(senal)
     else:
         print("⏳ Sin señal por ahora")
-
-    time.sleep(60)  # Espera 1 minuto antes de volver a analizar
+    time.sleep(60)
