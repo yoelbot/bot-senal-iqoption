@@ -1,4 +1,4 @@
-from iqoptionapi.stable_api import IQ_Option
+from iqoptionapi.stable_api import IQOptionAPI as IQ_Option
 import time
 import requests
 
