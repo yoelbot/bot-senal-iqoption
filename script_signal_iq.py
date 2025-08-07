@@ -1,5 +1,6 @@
-from iqoptionapi.api import IQOption
+from iqoptionapi.stable_api import IQ_Option
 import requests
+import time
 
 # === CONFIGURACIÓN ===
 EMAIL = "yoelaguilar27.Ya@outlook.com"
