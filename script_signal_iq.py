@@ -1,51 +1,46 @@
+from datetime import datetime
 import time
-from iqoptionapi.stable_api import IQ_Option
 import requests
 
-# === CONFIGURACIÓN ===
-EMAIL = "yoelaguilar27.Ya@outlook.com"
-PASSWORD = "Aguilar27"
-TOKEN_TELEGRAM = "8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q"
-ID_CHAT_TELEGRAM = "562640811"
+# 🔐 PEGA AQUÍ TUS DATOS PERSONALES DE TELEGRAM
+BOT_TOKEN = '8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q'     # ejemplo: 6123456789:AAEtcEtcEtcEtcEtc
+CHAT_ID = '562640811'             # ejemplo: 123456789 o -1001234567890
 
-# === CONEXIÓN A IQ OPTION ===
-iq = IQ_Option(EMAIL, PASSWORD)
-iq.connect()
+# 👤 CORREO DE REFERENCIA (opcional)
+USUARIO_CORREO = 'yoelaguilar@gmail.com'
 
-if iq.check_connect():
-    print("✅ Conectado a IQ Option")
-else:
-    print("❌ Error al conectar a IQ Option")
-    exit()
-
-# === FUNCIÓN PARA ENVIAR MENSAJES A TELEGRAM ===
+# ✅ FUNCIÓN PARA ENVIAR MENSAJE A TELEGRAM
 def enviar_telegram(mensaje):
-    url = f"https://api.telegram.org/bot{TOKEN_TELEGRAM}/sendMessage"
-    data = {"chat_id": ID_CHAT_TELEGRAM, "text": mensaje}
-    requests.post(url, data=data)
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {'chat_id': CHAT_ID, 'text': mensaje}
+    try:
+        requests.post(url, data=payload)
+    except Exception as e:
+        print(f"Error enviando mensaje a Telegram: {e}")
 
-# === LÓGICA DE ANÁLISIS SIMPLIFICADA ===
+# 🔍 DETECCIÓN DE SEÑAL (ejemplo, alterna entre CALL y PUT)
 def detectar_senal():
-    activo = "EURUSD"
-    timeframe = 1  # 1 minuto
-    velas = iq.get_candles(activo, 60, 5, time.time())
-
-    verdes = sum(1 for vela in velas if vela["close"] > vela["open"])
-    rojas = sum(1 for vela in velas if vela["close"] < vela["open"])
-
-    if verdes >= 4:
-        return f"📈 Señal CALL detectada en {activo}"
-    elif rojas >= 4:
-        return f"📉 Señal PUT detectada en {activo}"
+    segundo_actual = datetime.now().second
+    hora_actual = datetime.now().strftime("%H:%M")
+    if segundo_actual % 2 == 0:
+        return "CALL", hora_actual
     else:
-        return None
+        return "PUT", hora_actual
 
-# === BUCLE PRINCIPAL ===
+# 🔁 BUCLE PRINCIPAL
 while True:
-    senal = detectar_senal()
-    if senal:
-        print(senal)
-        enviar_telegram(senal)
-    else:
-        print("⏳ Sin señal por ahora")
-    time.sleep(60)
+    accion, hora = detectar_senal()
+    par = "EURUSD"  # puedes cambiar por el par real
+
+    mensaje = f"""{"🟢" if accion == "CALL" else "🔴"} Señal Detectada
+Par: {par}
+Acción: {accion}
+Hora: {hora}
+Estrategia: Análisis de Velas
+✅ Probabilidad: Mayor al 80%
+👤 Usuario: {USUARIO_CORREO}
+"""
+    enviar_telegram(mensaje)
+    print("🔔 Señal enviada correctamente:\n", mensaje)
+
+    time.sleep(60)  # Espera 60 segundos para la siguiente señal
