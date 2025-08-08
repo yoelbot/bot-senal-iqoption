@@ -1,54 +1,45 @@
-from datetime import datetime
 import time
-import requests
+from datetime import datetime
 import pytz
-import random  # Para simular una probabilidad aleatoria
+import random
+import requests
 
-# 🔐 CONFIGURACIÓN TELEGRAM
-BOT_TOKEN = '8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q'
-CHAT_ID = '562640811'
+# == CONFIGURACIÓN DE TELEGRAM ==
+TOKEN = "8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q"
+ID_CHAT = "562640811"
 
-# 🕒 ZONA HORARIA PERÚ
-zona_peru = pytz.timezone('America/Lima')
+# == ZONA HORARIA DE PERÚ ==
+zona_horaria_peru = pytz.timezone("America/Lima")
 
-# ✅ ENVIAR MENSAJE A TELEGRAM
+# == FUNCIÓN PARA ENVIAR MENSAJE A TELEGRAM ==
 def enviar_telegram(mensaje):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {'chat_id': CHAT_ID, 'text': mensaje}
-    try:
-        requests.post(url, data=payload)
-    except Exception as e:
-        print(f"❌ Error enviando mensaje a Telegram: {e}")
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    data = {
+        "chat_id": ID_CHAT,
+        "text": mensaje
+    }
+    requests.post(url, data=data)
 
-# 🔍 DETECCIÓN DE SEÑAL + PROBABILIDAD
-def detectar_senal():
-    segundo_actual = datetime.now().second
-    hora_actual = datetime.now(zona_peru).strftime("%H:%M")
+# == FUNCIÓN PRINCIPAL DEL BOT ==
+def analizar_mercado():
+    pares = ["EURUSD", "GBPUSD", "USDJPY"]  # Puedes añadir más pares
+    while True:
+        for par in pares:
+            accion = random.choice(["CALL", "PUT"])
+            probabilidad = random.randint(90, 100)  # Simulación de probabilidad
 
-    # Simula la señal (alternancia simple)
-    accion = "CALL" if segundo_actual % 2 == 0 else "PUT"
-
-    # Simula una probabilidad aleatoria entre 80 y 100%
-    probabilidad = random.randint(80, 100)
-
-    return accion, hora_actual, probabilidad
-
-# 🔁 BUCLE PRINCIPAL
-while True:
-    accion, hora, probabilidad = detectar_senal()
-    par = "EURUSD"
-
-    if probabilidad >= 95:
-        mensaje = f"""{"🟢" if accion == "CALL" else "🔴"} Señal Detectada
+            if probabilidad >= 95:
+                hora_actual = datetime.now(zona_horaria_peru).strftime("%H:%M")
+                mensaje = f"""🟢 Señal Detectada
 Par: {par}
 Acción: {accion}
-Hora: {hora}
+Hora: {hora_actual}
 Estrategia: Análisis de Velas
 ✅ Probabilidad: {probabilidad}%
+⏱️ Temporalidad: 1 Minuto (M1)
 """
-        enviar_telegram(mensaje)
-        print("📤 Señal enviada:\n", mensaje)
-    else:
-        print(f"⏳ Señal ignorada (solo {probabilidad}%)")
+                enviar_telegram(mensaje)
+        time.sleep(30)  # Espera 30 segundos antes de volver a analizar
 
-    time.sleep(60)
+# == EJECUCIÓN ==
+analizar_mercado()
