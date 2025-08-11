@@ -57,4 +57,4 @@ def main():
         if señal:
             tipo, prob = señal
             hora = datetime.now().strftime("%H:%M:%S")
-            mensaje = f"📢 Señal detectada {tipo} | {PAR} | Probabilidad: {prob}% | Hor
+            mensaje = f"📢 Señal detectada {tipo} | {PAR} | Probabilidad: {prob}% | Hora: {datetime.now().strftime('%H:%M:%S')}"
