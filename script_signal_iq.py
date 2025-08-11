@@ -1,60 +1,60 @@
 import time
-from datetime import datetime
-import pytz
-import random
 import requests
+from iqoptionapi.stable_api import IQ_Option
+from datetime import datetime
 
-# ================== CONFIGURACIÓN ==================
-TOKEN = '8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q'
-ID_CHAT = '562640811'
+# ---------------- CONFIGURACIÓN ----------------
+IQ_USER = "yoelaguilar27.ya@outlook.com"
+IQ_PASS = "Aguilar27"
+TELEGRAM_TOKEN = "8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q"
+TELEGRAM_CHAT_ID = "562640811"
+PAR = "EURUSD"  # Par a analizar
+TEMPORALIDAD = 1  # en minutos
+PROBABILIDAD_OBJETIVO = 100  # %
+# -------------------------------------------------
 
-PARES_MONEDA = ["EURUSD", "USDJPY", "GBPUSD"]
-TEMPORALIDAD = "1 Minuto (M1)"
-ZONA_HORARIA = pytz.timezone("America/Lima")  # Hora de Perú
-
-# ================ FUNCIÓN TELEGRAM =================
 def enviar_telegram(mensaje):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    data = {
-        "chat_id": ID_CHAT,
-        "text": mensaje,
-        "parse_mode": "HTML"
-    }
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
     try:
         requests.post(url, data=data)
     except Exception as e:
-        print(f"Error al enviar mensaje a Telegram: {e}")
+        print("Error enviando mensaje a Telegram:", e)
 
-# ================ SIMULADOR DE ANÁLISIS ================
-def analizar_mercado(par):
-    """
-    Simula el análisis de velas y retorna probabilidad y dirección
-    """
-    probabilidad = random.randint(80, 100)
-    accion = random.choice(["CALL", "PUT"])
-    return probabilidad, accion
+def conectar_iq():
+    iq = IQ_Option(IQ_USER, IQ_PASS)
+    iq.connect()
+    if iq.check_connect():
+        print("✅ Conectado a IQ Option")
+        return iq
+    else:
+        print("❌ No se pudo conectar a IQ Option")
+        exit()
 
-# ================ LOOP PRINCIPAL =================
-print("⏳ Bot de señales iniciado correctamente...")
+def analizar_vela(iq):
+    velas = iq.get_candles(PAR, TEMPORALIDAD * 60, 10, time.time())
+    subidas = sum(1 for v in velas if v['close'] > v['open'])
+    bajadas = sum(1 for v in velas if v['close'] < v['open'])
 
-while True:
-    for par in PARES_MONEDA:
-        probabilidad, accion = analizar_mercado(par)
+    total = subidas + bajadas
+    if total == 0:
+        return None
 
-        if probabilidad == 100:
-            hora_actual = datetime.now(ZONA_HORARIA).strftime("%H:%M")
+    prob_subida = (subidas / total) * 100
+    prob_bajada = (bajadas / total) * 100
 
-            mensaje = f"""🟢 <b>Señal Detectada</b>
-Par: <b>{par}</b>
-Acción: <b>{accion}</b>
-Hora: <b>{hora_actual}</b>
-Estrategia: <b>Análisis de Velas</b>
-✅ <b>Probabilidad: {probabilidad}%</b>
-⏱️ <b>Temporalidad: {TEMPORALIDAD}</b>
-"""
-            print(f"[{hora_actual}] Señal enviada: {par} - {accion} - {probabilidad}%")
-            enviar_telegram(mensaje)
-        
-        time.sleep(2)  # Breve espera entre pares
+    if prob_subida == PROBABILIDAD_OBJETIVO:
+        return ("CALL", prob_subida)
+    elif prob_bajada == PROBABILIDAD_OBJETIVO:
+        return ("PUT", prob_bajada)
+    else:
+        return None
 
-    time.sleep(10)  # Espera corta antes de volver a analizar
+def main():
+    iq = conectar_iq()
+    while True:
+        señal = analizar_vela(iq)
+        if señal:
+            tipo, prob = señal
+            hora = datetime.now().strftime("%H:%M:%S")
+            mensaje = f"📢 Señal detectada {tipo} | {PAR} | Probabilidad: {prob}% | Hor
