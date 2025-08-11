@@ -1,60 +1,56 @@
-import time
-import requests
 from iqoptionapi.stable_api import IQ_Option
-from datetime import datetime
+import time
+import datetime
+import requests
 
-# ---------------- CONFIGURACIÓN ----------------
-IQ_USER = "yoelaguilar27.ya@outlook.com"
-IQ_PASS = "Aguilar27"
-TELEGRAM_TOKEN = "8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q"
-TELEGRAM_CHAT_ID = "562640811"
-PAR = "EURUSD"  # Par a analizar
-TEMPORALIDAD = 1  # en minutos
-PROBABILIDAD_OBJETIVO = 100  # %
-# -------------------------------------------------
+# ====== CONFIGURACIÓN ======
+IQ_EMAIL = "yoelaguilar27.Ya@outlook.com"
+IQ_PASSWORD = "Aguilar27"
+TOKEN_TELEGRAM = "8250445329:AAEoEqJg8oGoFPFzKvs0wXpsh-2dCe4fm2Q"
+CHAT_ID = "562640811"
+ACTIVO = "EURUSD-OTC"  # Cambia si quieres otro par
+TIEMPO_EXPIRACION = 1  # Minutos
+# ===========================
 
+# Conexión a IQ Option
+I_want_money = IQ_Option(IQ_EMAIL, IQ_PASSWORD)
+I_want_money.connect()
+
+if I_want_money.check_connect():
+    print("✅ Conectado correctamente a IQ Option")
+else:
+    print("❌ Error de conexión a IQ Option")
+    exit()
+
+# Función para enviar mensaje a Telegram
 def enviar_telegram(mensaje):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
     try:
+        url = f"https://api.telegram.org/bot{TOKEN_TELEGRAM}/sendMessage"
+        data = {"chat_id": CHAT_ID, "text": mensaje}
         requests.post(url, data=data)
     except Exception as e:
-        print("Error enviando mensaje a Telegram:", e)
+        print(f"Error enviando a Telegram: {e}")
 
-def conectar_iq():
-    iq = IQ_Option(IQ_USER, IQ_PASS)
-    iq.connect()
-    if iq.check_connect():
-        print("✅ Conectado a IQ Option")
-        return iq
+# Función de análisis de velas y señales
+def analizar_senales():
+    velas = I_want_money.get_candles(ACTIVO, 60, 3, time.time())
+    ultima = velas[-1]
+    penultima = velas[-2]
+
+    if ultima['close'] > ultima['open'] and penultima['close'] < penultima['open']:
+        enviar_telegram(f"📈 Señal CALL detectada en {ACTIVO}")
+        print(f"{datetime.datetime.now()} - Señal CALL detectada")
+    elif ultima['close'] < ultima['open'] and penultima['close'] > penultima['open']:
+        enviar_telegram(f"📉 Señal PUT detectada en {ACTIVO}")
+        print(f"{datetime.datetime.now()} - Señal PUT detectada")
     else:
-        print("❌ No se pudo conectar a IQ Option")
-        exit()
+        print(f"{datetime.datetime.now()} - Sin señal")
 
-def analizar_vela(iq):
-    velas = iq.get_candles(PAR, TEMPORALIDAD * 60, 10, time.time())
-    subidas = sum(1 for v in velas if v['close'] > v['open'])
-    bajadas = sum(1 for v in velas if v['close'] < v['open'])
-
-    total = subidas + bajadas
-    if total == 0:
-        return None
-
-    prob_subida = (subidas / total) * 100
-    prob_bajada = (bajadas / total) * 100
-
-    if prob_subida == PROBABILIDAD_OBJETIVO:
-        return ("CALL", prob_subida)
-    elif prob_bajada == PROBABILIDAD_OBJETIVO:
-        return ("PUT", prob_bajada)
-    else:
-        return None
-
-def main():
-    iq = conectar_iq()
-    while True:
-        señal = analizar_vela(iq)
-        if señal:
-            tipo, prob = señal
-            hora = datetime.now().strftime("%H:%M:%S")
-            mensaje = f"📢 Señal detectada {tipo} | {PAR} | Probabilidad: {prob}% | Hora: {datetime.now().strftime('%H:%M:%S')}"
+# Bucle infinito para mantener activo el bot
+while True:
+    try:
+        analizar_senales()
+        time.sleep(1)  # Revisa cada segundo
+    except Exception as e:
+        print(f"Error en bucle: {e}")
+        time.sleep(5)
