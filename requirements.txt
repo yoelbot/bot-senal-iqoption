@@ -1,2 +1,2 @@
-pytz
+iqoptionapi
 requests
