@@ -19,17 +19,21 @@ def enviar_telegram(mensaje):
     data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
     requests.post(url, data=data)
 
-# ======= CONEXIÓN IQ OPTION =======
-I_want_money = IQ_Option(IQ_EMAIL, IQ_PASSWORD)
-I_want_money.connect()
+# ======= FUNCIÓN PARA CONECTAR =======
+def conectar():
+    global I_want_money
+    I_want_money = IQ_Option(IQ_EMAIL, IQ_PASSWORD)
+    I_want_money.connect()
+    if I_want_money.check_connect():
+        print("✅ Conectado a IQ Option")
+        enviar_telegram("✅ Bot reconectado a IQ Option")
+    else:
+        print("❌ Error al reconectar. Reintentando...")
+        time.sleep(5)
+        conectar()
 
-if I_want_money.check_connect():
-    print("✅ Conectado a IQ Option")
-    enviar_telegram("✅ Bot conectado a IQ Option")
-else:
-    print("❌ Error de conexión a IQ Option")
-    enviar_telegram("❌ Error de conexión a IQ Option")
-    exit()
+# ======= INICIAR CONEXIÓN =======
+conectar()
 
 # ======= LISTA DE PARES OTC =======
 pares_otc = [
@@ -43,36 +47,43 @@ ultima_senal = None  # (par, tendencia)
 
 # ======= BUCLE PRINCIPAL =======
 while True:
-    mejor_senal = None
-    mejor_prob = 0
+    try:
+        mejor_senal = None
+        mejor_prob = 0
 
-    for par in pares_otc:
-        velas = I_want_money.get_candles(par, TIEMPO_VELA, 10, time.time())
+        for par in pares_otc:
+            velas = I_want_money.get_candles(par, TIEMPO_VELA, 10, time.time())
 
-        verdes = sum(1 for v in velas if v['close'] > v['open'])
-        rojas = len(velas) - verdes
-        probabilidad = (max(verdes, rojas) / len(velas)) * 100
+            verdes = sum(1 for v in velas if v['close'] > v['open'])
+            rojas = len(velas) - verdes
+            probabilidad = (max(verdes, rojas) / len(velas)) * 100
 
-        if velas[-1]['close'] > velas[-1]['open']:
-            tendencia = "CALL"
-        else:
-            tendencia = "PUT"
+            if velas[-1]['close'] > velas[-1]['open']:
+                tendencia = "CALL"
+            else:
+                tendencia = "PUT"
 
-        if probabilidad > mejor_prob:
-            mejor_prob = probabilidad
-            mejor_senal = (par, tendencia, probabilidad)
+            if probabilidad > mejor_prob:
+                mejor_prob = probabilidad
+                mejor_senal = (par, tendencia, probabilidad)
 
-    if mejor_senal and mejor_prob >= PROBABILIDAD_MIN:
-        if ultima_senal != (mejor_senal[0], mejor_senal[1]):
-            hora_actual = datetime.now().strftime("%H:%M:%S")
-            mensaje = (
-                f"📊 Señal {mejor_senal[1]}\n"
-                f"💱 Par: {mejor_senal[0]}\n"
-                f"🕒 Hora: {hora_actual}\n"
-                f"📈 Probabilidad: {mejor_senal[2]:.2f}%"
-            )
-            enviar_telegram(mensaje)
-            print(mensaje)
-            ultima_senal = (mejor_senal[0], mejor_senal[1])
+        if mejor_senal and mejor_prob >= PROBABILIDAD_MIN:
+            if ultima_senal != (mejor_senal[0], mejor_senal[1]):
+                hora_actual = datetime.now().strftime("%H:%M:%S")
+                mensaje = (
+                    f"📊 Señal {mejor_senal[1]}\n"
+                    f"💱 Par: {mejor_senal[0]}\n"
+                    f"🕒 Hora: {hora_actual}\n"
+                    f"📈 Probabilidad: {mejor_senal[2]:.2f}%"
+                )
+                enviar_telegram(mensaje)
+                print(mensaje)
+                ultima_senal = (mejor_senal[0], mejor_senal[1])
 
-    time.sleep(TIEMPO_VELA)
+        time.sleep(TIEMPO_VELA)
+
+    except Exception as e:
+        print(f"⚠️ Error detectado: {e}")
+        enviar_telegram("⚠️ Error detectado. Reconectando...")
+        conectar()
+        time.sleep(5)
